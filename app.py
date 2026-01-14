@@ -6,38 +6,60 @@ import time
 # --- CONFIGURAÇÃO DA PÁGINA ---
 st.set_page_config(page_title="Gestão Leilões", page_icon="🏢", layout="centered")
 
-# --- CSS PERSONALIZADO (AZUL DEGRADÊ + LARANJA) ---
+# --- CSS PERSONALIZADO (CORREÇÃO MOBILE + NOVAS CORES) ---
 hide_st_style = """
             <style>
-            /* Esconde Menu e Rodapé */
+            /* --- 1. CORREÇÃO DA BARRA LATERAL NO MOBILE --- */
+            /* Esconde apenas o menu de 3 pontinhos e o rodapé, não o cabeçalho inteiro */
             #MainMenu {visibility: hidden;}
-            header {visibility: hidden;}
             footer {visibility: hidden;}
+
+            /* Deixa a área do cabeçalho transparente para não tapar o degradê */
+            header[data-testid="stHeader"] {
+                background: transparent;
+            }
             
-            /* 1. FUNDO GERAL (DEGRADÊ AZUL CLARO) */
+            /* FORÇA o ícone do menu (hambúrguer ☰) a ficar BRANCO para aparecer no fundo escuro */
+            button[data-testid="baseButton-headerNoPadding"] {
+                color: #FFFFFF !important;
+            }
+
+            /* --- 2. NOVO FUNDO (AZUL MARINHO -> BRANCO) --- */
             .stApp {
-                background: linear-gradient(180deg, #E1F5FE 0%, #F1F8E9 100%);
+                /* Degradê vertical: Azul Marinho profundo no topo, descendo para branco puro */
+                background: linear-gradient(180deg, #0A2342 0%, #FFFFFF 85%);
                 background-attachment: fixed;
             }
 
-            /* 2. BARRA LATERAL (CINZA CLARO) */
-            [data-testid="stSidebar"] {
-                background-color: #F0F2F6;
-                border-right: 1px solid #d1d5db;
-            }
-
-            /* 3. CARTÕES DOS IMÓVEIS (LARANJA CLARINHO) */
+            /* --- 3. CARTÕES "MAIS LARANJAS" --- */
             [data-testid="stExpander"] {
-                background-color: #FFF3E0; /* Fundo Laranja Pastel */
-                border: 1px solid #FFE0B2; /* Borda Laranja um pouco mais forte */
-                border-radius: 10px;
-                color: #333333; /* Texto escuro para leitura */
+                background-color: #FFEBD7 !important; /* Um laranja pêssego mais vivo */
+                border: 2px solid #FF9800 !important; /* Borda laranja forte para destacar */
+                border-radius: 12px;
+                box-shadow: 0 4px 6px rgba(0,0,0,0.1); /* Sombra leve para dar destaque */
             }
             
-            /* Ajuste para o cabeçalho do cartão ficar bonito */
+            /* Ajuste para o título do cartão ficar em laranja escuro */
             .streamlit-expanderHeader {
-                color: #E65100; /* Texto do título em laranja escuro para destaque */
+                color: #E65100 !important;
                 font-weight: bold;
+            }
+            
+            /* Ajuste da cor da fonte dentro do cartão para preto (leitura fácil) */
+            [data-testid="stExpander"] .stMarkdown {
+                color: #333333;
+            }
+
+            /* Barra Lateral (Cinza bem claro para contraste limpo) */
+            [data-testid="stSidebar"] {
+                background-color: #F8F9FA;
+                border-right: 1px solid #eee;
+            }
+            
+            /* Títulos principais em branco para destacar no azul marinho */
+            h1, h3.stSubheader {
+                color: #FFFFFF !important;
+                text-shadow: 0 1px 2px rgba(0,0,0,0.3);
             }
             </style>
             """
