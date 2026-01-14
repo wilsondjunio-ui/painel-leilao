@@ -6,22 +6,38 @@ import time
 # --- CONFIGURAÇÃO DA PÁGINA ---
 st.set_page_config(page_title="Gestão Leilões", page_icon="🏢", layout="centered")
 
-# --- ESTILOS CSS (COR DE FUNDO + ESCONDER MENU) ---
-# Aqui definimos a cor de papel envelhecido e limpamos o visual
+# --- CSS PERSONALIZADO (AZUL DEGRADÊ + LARANJA) ---
 hide_st_style = """
             <style>
+            /* Esconde Menu e Rodapé */
             #MainMenu {visibility: hidden;}
             header {visibility: hidden;}
             footer {visibility: hidden;}
             
-            /* MUDANÇA DE COR DE FUNDO AQUI */
+            /* 1. FUNDO GERAL (DEGRADÊ AZUL CLARO) */
             .stApp {
-                background-color: #f5f0e1; /* Cor creme/papel natural */
+                background: linear-gradient(180deg, #E1F5FE 0%, #F1F8E9 100%);
+                background-attachment: fixed;
             }
-            /* Ajuste opcional para os containers internos ficarem brancos ou transparentes */
+
+            /* 2. BARRA LATERAL (CINZA CLARO) */
+            [data-testid="stSidebar"] {
+                background-color: #F0F2F6;
+                border-right: 1px solid #d1d5db;
+            }
+
+            /* 3. CARTÕES DOS IMÓVEIS (LARANJA CLARINHO) */
             [data-testid="stExpander"] {
-                background-color: #ffffff; /* Deixa os cartões dos imóveis brancos para contraste */
+                background-color: #FFF3E0; /* Fundo Laranja Pastel */
+                border: 1px solid #FFE0B2; /* Borda Laranja um pouco mais forte */
                 border-radius: 10px;
+                color: #333333; /* Texto escuro para leitura */
+            }
+            
+            /* Ajuste para o cabeçalho do cartão ficar bonito */
+            .streamlit-expanderHeader {
+                color: #E65100; /* Texto do título em laranja escuro para destaque */
+                font-weight: bold;
             }
             </style>
             """
@@ -30,7 +46,6 @@ st.markdown(hide_st_style, unsafe_allow_html=True)
 # --- CONEXÃO COM PLANILHA (COM ANTI-CACHE) ---
 sheet_id = "1ke17ffjYUXwOf2gFLJorbWH46uY-EbEWCw0099iYaPI"
 sheet_name = "Dados"
-# O 't' força atualização constante dos dados
 url = f"https://docs.google.com/spreadsheets/d/{sheet_id}/gviz/tq?tqx=out:csv&sheet={sheet_name}&t={int(time.time())}"
 
 # --- FUNÇÕES VISUAIS E LÓGICAS ---
@@ -114,22 +129,14 @@ if not st.session_state['logado']:
         cpf_input = st.text_input("CPF:", type="password")
         if st.button("Entrar", use_container_width=True):
             if cpf_input:
-                # Limpa o input (deixa só numeros)
                 cpf_limpo = ''.join(filter(str.isdigit, cpf_input))
-                
                 try:
                     df['Acesso_Autorizado'] = False
-                    
                     if 'CPFs_Acesso' in df.columns:
                         for index, row in df.iterrows():
-                            # Pega o conteúdo da célula
                             celula_crua = str(row['CPFs_Acesso'])
-                            # Troca tudo que não for número por espaço
                             celula_limpa = ''.join([c if c.isdigit() else ' ' for c in celula_crua])
-                            # Cria lista de CPFs daquela célula
                             lista_cpfs = celula_limpa.split()
-                            
-                            # Verifica se o CPF digitado está na lista
                             if cpf_limpo in lista_cpfs:
                                 df.at[index, 'Acesso_Autorizado'] = True
                         
@@ -154,21 +161,17 @@ else:
     nome = st.session_state['nome_investidor']
     meus_dados = st.session_state['dados_cliente']
     
-    # --- BARRA LATERAL (AGORA SÓ COM LOGO E SAIR) ---
+    # --- BARRA LATERAL ---
     with st.sidebar:
         mostrar_logo(150)
-        # st.write(f"Olá, **{nome}**") <-- REMOVIDO DAQUI
-        st.write("") # Espaço
+        st.write("")
         if st.button("Sair", use_container_width=True):
             st.session_state['logado'] = False
             st.rerun()
 
     # --- ÁREA PRINCIPAL ---
     st.title("🏡 Meus Ativos")
-    
-    # --- NOVO LOCAL DO NOME DO CLIENTE ---
     st.subheader(f"Olá, {nome} 👋")
-    
     st.markdown("---")
     
     for index, row in meus_dados.iterrows():
