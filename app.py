@@ -142,14 +142,22 @@ else:
     nome = st.session_state['nome_investidor']
     meus_dados = st.session_state['dados_cliente']
     
+    # --- BARRA LATERAL (Apenas Logo e Sair) ---
     with st.sidebar:
         mostrar_logo(150)
-        st.write(f"Olá, **{nome}**")
+        st.write("") 
         if st.button("Sair"):
             st.session_state['logado'] = False
             st.rerun()
 
+    # --- ÁREA PRINCIPAL ---
+    
+    # 1. NOME NO TOPO ESQUERDO
+    st.subheader(f"Olá, {nome}")
+    
+    # 2. TÍTULO ABAIXO
     st.title("🏡 Meus Imoveis")
+    
     st.markdown("---")
     
     for index, row in meus_dados.iterrows():
@@ -160,46 +168,4 @@ else:
         with st.expander(titulo_card, expanded=False):
             barra_progresso_interna(progresso)
             c1, c2 = st.columns(2)
-            c1.caption(f"🆔 ID: {row['ID_Caixa']}")
-            c1.caption(f"📍 Tipo: {row.get('Tipo_Imovel', '-')}")
-            c2.markdown(f"💰 Valor: **:green[{row['Valor_Imovel']}]**")
-            st.divider()
-
-            st.markdown("##### 🚦 Status de Regularização")
-            r1, r2, r3 = st.columns(3)
-            ocup = row.get('Status_Ocupacao', '-')
-            r1.markdown(f"**Ocupação:** :{obter_cor_texto(ocup)}[{ocup}]")
-            iptu = row.get('Debito_IPTU', '-')
-            r2.markdown(f"**IPTU:** :{obter_cor_texto(iptu)}[{iptu}]")
-            if 'casa' not in str(row.get('Tipo_Imovel', '')).lower():
-                cond = row.get('Debito_Condominio', '-')
-                r3.markdown(f"**Condomínio:** :{obter_cor_texto(cond)}[{cond}]")
-            
-            st.divider()
-            st.markdown("##### 📝 Etapas Documentais")
-            tipo_compra = str(row.get('Tipo_Compra', '')).lower()
-            fluxo = [("Contrato", "Status_Contrato", "Link_Contrato", "Nota_Contrato"), ("ITBI", "Status_ITBI", "Link_ITBI", "Nota_ITBI")]
-            if 'financiado' not in tipo_compra: fluxo.append(("Escritura", "Status_Escritura", "Link_Escritura", "Nota_Escritura"))
-            fluxo.append(("Registro", "Status_Registro", "Link_Registro", "Nota_Registro"))
-            fluxo.append(("Cad. Imobiliário", "Status_Cadastro", "Link_Cadastro", "Nota_Cadastro"))
-            
-            for i in range(0, len(fluxo), 2):
-                cols = st.columns(2)
-                for j, item in enumerate(fluxo[i:i+2]):
-                    lbl, stt, lnk, nt = item
-                    with cols[j]:
-                        txt = row.get(stt, '')
-                        st.markdown(f"**{lbl}**"); st.write(f"{obter_icone(txt)} {txt}")
-                        l, n = st.columns([1,4])
-                        lk = str(row.get(lnk, '')).strip()
-                        if lk and "http" in lk: l.link_button("📂", lk)
-                        nt_txt = str(row.get(nt, '')).strip()
-                        if nt_txt: n.popover("Obs").write(nt_txt)
-                        st.write("")
-            st.divider()
-            st.caption("Fase Final")
-            f1, f2 = st.columns(2)
-            f1.info(f"Engenharia: {row.get('Status_Engenharia', '-')}")
-            rv = str(row.get('Status_Revenda', '-'))
-            if "vendido" in rv.lower(): f2.success(f"Revenda: {rv}")
-            else: f2.warning(f"Revenda: {rv}")
+            c1.caption
