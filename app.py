@@ -205,7 +205,7 @@ else:
             st.rerun()
 
     # --- ÁREA PRINCIPAL ---
-    st.title("🏡 Meus Ativos")
+    st.title("🏡 Meus Imoveis")
     st.subheader(f"Olá, {nome} 👋")
     st.markdown("---")
     
@@ -260,3 +260,4 @@ else:
             rv = str(row.get('Status_Revenda', '-'))
             if "vendido" in rv.lower(): f2.success(f"Revenda: {rv}")
             else: f2.warning(f"Revenda: {rv}")
+
