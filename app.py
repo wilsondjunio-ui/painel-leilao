@@ -1,14 +1,16 @@
 import streamlit as st
 import pandas as pd
 import os
+import time
 
 # --- CONFIGURAÇÃO DA PÁGINA ---
 st.set_page_config(page_title="Gestão Leilões", page_icon="🏢", layout="centered")
 
-# --- CONEXÃO COM PLANILHA ---
+# --- CONEXÃO COM PLANILHA (COM ANTI-CACHE) ---
 sheet_id = "1ke17ffjYUXwOf2gFLJorbWH46uY-EbEWCw0099iYaPI"
 sheet_name = "Dados"
-url = f"https://docs.google.com/spreadsheets/d/{sheet_id}/gviz/tq?tqx=out:csv&sheet={sheet_name}"
+# O parâmetro 't' força o Google a não usar dados velhos (Cache Buster)
+url = f"https://docs.google.com/spreadsheets/d/{sheet_id}/gviz/tq?tqx=out:csv&sheet={sheet_name}&t={int(time.time())}"
 
 # --- FUNÇÕES VISUAIS E LÓGICAS ---
 
@@ -86,9 +88,16 @@ def mostrar_logo(width_val):
 
 # --- CARREGAMENTO DE DADOS ---
 try:
+    # Lê tudo como texto
     df = pd.read_csv(url, dtype=str).fillna("")
-    # Limpeza básica dos nomes das colunas
+    
+    # Limpeza dos nomes das colunas
     df.columns = df.columns.str.strip()
+    
+    # GARANTIA: Força a coluna CPF ser texto para busca funcionar
+    if 'CPFs_Acesso' in df.columns:
+        df['CPFs_Acesso'] = df['CPFs_Acesso'].astype(str)
+        
 except Exception as e:
     st.error(f"Erro ao conectar na planilha: {e}")
     st.stop()
@@ -105,13 +114,13 @@ if not st.session_state['logado']:
         cpf_input = st.text_input("CPF:", type="password")
         if st.button("Entrar", use_container_width=True):
             if cpf_input:
-                # Limpa apenas o que foi digitado (remove pontos e traços)
+                # Limpa o que o usuário digitou (apenas números)
                 cpf_limpo = cpf_input.replace(".", "").replace("-", "").strip()
                 
                 try:
-                    # MUDANÇA AQUI: Usa 'contains' para permitir múltiplos CPFs na mesma célula
-                    # Ex: Célula "111, 222, 333" -> Se digitar "111" ele entra.
-                    filtro = df['CPFs_Acesso'].str.contains(cpf_limpo, na=False)
+                    # LÓGICA DE GRUPO: Verifica se o CPF digitado ESTÁ CONTIDO na célula
+                    # Isso permite células como: "11122233300, 99988877700"
+                    filtro = df['CPFs_Acesso'].str.contains(cpf_limpo, na=False, regex=False)
                     cliente_df = df[filtro]
                     
                     if not cliente_df.empty:
