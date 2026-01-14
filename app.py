@@ -6,10 +6,19 @@ import time
 # --- CONFIGURAÇÃO DA PÁGINA ---
 st.set_page_config(page_title="Gestão Leilões", page_icon="🏢", layout="centered")
 
+# --- ESCONDER MENU, CABEÇALHO E RODAPÉ (VISUAL LIMPO) ---
+hide_st_style = """
+            <style>
+            #MainMenu {visibility: hidden;}
+            header {visibility: hidden;}
+            footer {visibility: hidden;}
+            </style>
+            """
+st.markdown(hide_st_style, unsafe_allow_html=True)
+
 # --- CONEXÃO COM PLANILHA (COM ANTI-CACHE) ---
 sheet_id = "1ke17ffjYUXwOf2gFLJorbWH46uY-EbEWCw0099iYaPI"
 sheet_name = "Dados"
-# O 't' força atualização constante dos dados
 url = f"https://docs.google.com/spreadsheets/d/{sheet_id}/gviz/tq?tqx=out:csv&sheet={sheet_name}&t={int(time.time())}"
 
 # --- FUNÇÕES VISUAIS E LÓGICAS ---
@@ -194,5 +203,3 @@ else:
             rv = str(row.get('Status_Revenda', '-'))
             if "vendido" in rv.lower(): f2.success(f"Revenda: {rv}")
             else: f2.warning(f"Revenda: {rv}")
-
-
