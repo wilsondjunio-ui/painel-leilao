@@ -144,7 +144,7 @@ else:
             st.session_state['logado'] = False
             st.rerun()
 
-    st.title("🏡 Meus Ativos")
+    st.title("🏡 Meus Imoveis")
     st.markdown("---")
     
     for index, row in meus_dados.iterrows():
@@ -228,3 +228,4 @@ else:
                 ce2.success(f"Revenda: {revenda}")
             else:
                 ce2.warning(f"Revenda: {revenda}")
+
