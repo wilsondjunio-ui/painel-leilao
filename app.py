@@ -9,7 +9,7 @@ st.set_page_config(page_title="Gestão Leilões", page_icon="🏢", layout="cent
 # --- CONEXÃO COM PLANILHA (COM ANTI-CACHE) ---
 sheet_id = "1ke17ffjYUXwOf2gFLJorbWH46uY-EbEWCw0099iYaPI"
 sheet_name = "Dados"
-# O parâmetro 't' força o Google a não usar dados velhos (Cache Buster)
+# O 't' muda a cada segundo para obrigar o Google a mandar dados novos
 url = f"https://docs.google.com/spreadsheets/d/{sheet_id}/gviz/tq?tqx=out:csv&sheet={sheet_name}&t={int(time.time())}"
 
 # --- FUNÇÕES VISUAIS E LÓGICAS ---
@@ -88,15 +88,23 @@ def mostrar_logo(width_val):
 
 # --- CARREGAMENTO DE DADOS ---
 try:
-    # Lê tudo como texto
+    # 1. Lê tudo como texto
     df = pd.read_csv(url, dtype=str).fillna("")
     
-    # Limpeza dos nomes das colunas
+    # 2. Limpeza dos nomes das colunas
     df.columns = df.columns.str.strip()
     
-    # GARANTIA: Força a coluna CPF ser texto para busca funcionar
+    # 3. LIMPEZA EXTREMA DA COLUNA DE CPFS
     if 'CPFs_Acesso' in df.columns:
+        # Converte para texto
         df['CPFs_Acesso'] = df['CPFs_Acesso'].astype(str)
+        # Remove pontos (.) e traços (-)
+        df['CPFs_Acesso'] = df['CPFs_Acesso'].str.replace('.', '', regex=False)
+        df['CPFs_Acesso'] = df['CPFs_Acesso'].str.replace('-', '', regex=False)
+        # Remove espaços em branco ( ) - ISSO É IMPORTANTE PARA SUA LISTA
+        df['CPFs_Acesso'] = df['CPFs_Acesso'].str.replace(' ', '', regex=False)
+        # Remove quebras de linha (\n) caso tenha dado Enter na célula
+        df['CPFs_Acesso'] = df['CPFs_Acesso'].str.replace('\n', '', regex=False)
         
 except Exception as e:
     st.error(f"Erro ao conectar na planilha: {e}")
@@ -114,12 +122,13 @@ if not st.session_state['logado']:
         cpf_input = st.text_input("CPF:", type="password")
         if st.button("Entrar", use_container_width=True):
             if cpf_input:
-                # Limpa o que o usuário digitou (apenas números)
-                cpf_limpo = cpf_input.replace(".", "").replace("-", "").strip()
+                # Limpa o que o usuário digitou (remove pontos, traços e espaços)
+                cpf_limpo = cpf_input.replace(".", "").replace("-", "").replace(" ", "").strip()
                 
                 try:
-                    # LÓGICA DE GRUPO: Verifica se o CPF digitado ESTÁ CONTIDO na célula
-                    # Isso permite células como: "11122233300, 99988877700"
+                    # LÓGICA DE BUSCA:
+                    # Como removemos todos os espaços da planilha, a célula "111, 222" virou "111,222".
+                    # Se buscar "111", acha. Se buscar "222", acha.
                     filtro = df['CPFs_Acesso'].str.contains(cpf_limpo, na=False, regex=False)
                     cliente_df = df[filtro]
                     
