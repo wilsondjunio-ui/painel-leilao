@@ -84,18 +84,11 @@ def mostrar_logo(width_val):
     except Exception:
         pass
 
-# --- CARREGAMENTO DE DADOS (COM LIMPEZA) ---
+# --- CARREGAMENTO DE DADOS ---
 try:
-    # 1. Carrega tudo como texto
     df = pd.read_csv(url, dtype=str).fillna("")
-    
-    # 2. LIMPEZA DOS CABEÇALHOS (Remove espaços extras nos nomes das colunas)
+    # Limpeza básica dos nomes das colunas
     df.columns = df.columns.str.strip()
-    
-    # 3. LIMPEZA DOS CPFS (Remove espaços extras dentro dos dados)
-    if 'CPFs_Acesso' in df.columns:
-        df['CPFs_Acesso'] = df['CPFs_Acesso'].str.strip()
-        
 except Exception as e:
     st.error(f"Erro ao conectar na planilha: {e}")
     st.stop()
@@ -112,12 +105,13 @@ if not st.session_state['logado']:
         cpf_input = st.text_input("CPF:", type="password")
         if st.button("Entrar", use_container_width=True):
             if cpf_input:
-                # Limpa o que o usuário digitou (tira pontos, traços e espaços)
+                # Limpa apenas o que foi digitado (remove pontos e traços)
                 cpf_limpo = cpf_input.replace(".", "").replace("-", "").strip()
                 
                 try:
-                    # Busca exata (agora funciona sem espaço extra)
-                    filtro = df['CPFs_Acesso'] == cpf_limpo
+                    # MUDANÇA AQUI: Usa 'contains' para permitir múltiplos CPFs na mesma célula
+                    # Ex: Célula "111, 222, 333" -> Se digitar "111" ele entra.
+                    filtro = df['CPFs_Acesso'].str.contains(cpf_limpo, na=False)
                     cliente_df = df[filtro]
                     
                     if not cliente_df.empty:
@@ -144,7 +138,7 @@ else:
             st.session_state['logado'] = False
             st.rerun()
 
-    st.title("🏡 Meus Imoveis")
+    st.title("🏡 Meus Ativos")
     st.markdown("---")
     
     for index, row in meus_dados.iterrows():
@@ -228,4 +222,3 @@ else:
                 ce2.success(f"Revenda: {revenda}")
             else:
                 ce2.warning(f"Revenda: {revenda}")
-
