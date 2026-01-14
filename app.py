@@ -1,25 +1,21 @@
 import streamlit as st
 import pandas as pd
-from streamlit_gsheets import GSheetsConnection
 
 # --- CONFIGURAÇÃO DA PÁGINA ---
 st.set_page_config(page_title="Gestão Leilões", page_icon="🏢", layout="centered")
 
-# --- CONEXÃO COM A PLANILHA ---
-conn = st.connection("gsheets", type=GSheetsConnection)
+# --- CONEXÃO DIRETA (SEM SENHA) ---
+# Usamos o link de exportação CSV do Google Sheets
+sheet_id = "1ke17ffjYUXwOf2gFLJorbWH46uY-EbEWCw0099iYaPI"
+sheet_name = "Dados"
+url = f"https://docs.google.com/spreadsheets/d/{sheet_id}/gviz/tq?tqx=out:csv&sheet={sheet_name}"
 
 try:
-    # MUDANÇA AQUI: Agora ele busca a aba "Dados" (sem acento para não travar)
-    df = conn.read(worksheet="Dados", ttl=5)
+    # Lê direto do link, forçando CPF e ID a serem textos (para não perder zeros)
+    df = pd.read_csv(url, dtype={'CPFs_Acesso': str, 'ID_Caixa': str})
     
-    # Garante que CPFs e IDs sejam lidos como texto
-    df['CPFs_Acesso'] = df['CPFs_Acesso'].astype(str)
-    df['ID_Caixa'] = df['ID_Caixa'].astype(str)
-
 except Exception as e:
-    # Se der erro, mostra na tela vermelha
-    st.error(f"⚠️ O ERRO É: {e}")
-    st.info("DICA: Verifique se você renomeou a aba da planilha para 'Dados'.")
+    st.error(f"Erro ao conectar na planilha: {e}")
     st.stop()
 
 # --- TELA DE LOGIN ---
@@ -28,7 +24,6 @@ if 'logado' not in st.session_state:
 
 if not st.session_state['logado']:
     
-    # Tenta mostrar a logo
     try:
         st.image("logo.png", width=200) 
     except:
@@ -43,30 +38,31 @@ if not st.session_state['logado']:
     
     if entrar_btn:
         if cpf_input:
-            # Verifica se o CPF digitado existe dentro da célula (para grupos)
+            # Limpa pontos e traços do CPF digitado, se houver
+            cpf_limpo = cpf_input.replace(".", "").replace("-", "")
+            
             try:
-                filtro = df['CPFs_Acesso'].str.contains(cpf_input, na=False)
+                # Verifica se o CPF existe na coluna (mesmo que esteja dentro de uma lista)
+                filtro = df['CPFs_Acesso'].str.contains(cpf_limpo, na=False)
                 cliente_df = df[filtro]
                 
                 if not cliente_df.empty:
                     st.session_state['logado'] = True
                     st.session_state['dados_cliente'] = cliente_df
-                    # Pega o nome do investidor da primeira linha encontrada
                     st.session_state['nome_investidor'] = cliente_df.iloc[0]['Investidor']
                     st.rerun()
                 else:
-                    st.error("CPF não encontrado ou sem permissão.")
+                    st.error("CPF não encontrado.")
             except KeyError:
-                 st.error("Erro na Planilha: Não encontrei a coluna 'CPFs_Acesso'. Verifique se escreveu o cabeçalho certo na célula A1.")
+                st.error("Erro: A coluna 'CPFs_Acesso' não foi encontrada na planilha. Verifique o nome na aba 'Dados'.")
         else:
             st.warning("Digite o CPF.")
 
-# --- ÁREA LOGADA (O PAINEL) ---
+# --- ÁREA LOGADA ---
 else:
     nome = st.session_state['nome_investidor']
     meus_dados = st.session_state['dados_cliente']
     
-    # Barra Lateral
     with st.sidebar:
         try:
             st.image("logo.png", width=150)
@@ -80,45 +76,37 @@ else:
     st.title("🏡 Meus Ativos")
     st.markdown("---")
     
-    # Loop para gerar a lista de imóveis
     for index, row in meus_dados.iterrows():
-        
-        # Define o título do botão (Nome + Progresso)
-        progresso = int(row['Progresso']) if pd.notnull(row['Progresso']) else 0
+        # Trata o progresso para garantir que seja número
+        try:
+            progresso = int(row['Progresso'])
+        except:
+            progresso = 0
+            
         titulo_botao = f"{row['Imovel_Nome']} ({progresso}%)"
         
-        # --- LISTA SANFONA (EXPANDER) ---
         with st.expander(titulo_botao, expanded=False):
-            
-            # Cabeçalho Interno: ID e Valor
             c_head1, c_head2 = st.columns([2, 2])
             c_head1.caption(f"🆔 ID Caixa: {row['ID_Caixa']}")
             
             valor = row.get('Valor_Imovel', 'R$ -')
             c_head2.markdown(f"💰 Valor: **:green[{valor}]**")
             
-            # Barra de Progresso
-            cor_barra = "green" if progresso == 100 else "blue"
             st.progress(progresso, text="Status Geral")
-            
             st.markdown("---")
 
-            # --- FASE 1: AQUISIÇÃO ---
             st.caption("1️⃣ Etapa de Aquisição e Legalização")
             c1, c2 = st.columns(2)
             
-            # Contrato
             icon_contrato = "✅" if "Assinado" in str(row['Status_Contrato']) else "⏳"
             c1.markdown(f"**Contrato:** {icon_contrato} {row['Status_Contrato']}")
 
-            # Escritura (Esconde se for Financiado)
             if str(row['Tipo_Compra']).lower().strip() == "vista":
                 icon_esc = "✅" if "Concluída" in str(row['Status_Escritura']) else "📝"
                 c1.markdown(f"**Escritura:** {icon_esc} {row['Status_Escritura']}")
             else:
                 c1.markdown(f"**Escritura:** 🚫 *Financiado*")
             
-            # ITBI (Alerta se tiver problema)
             status_itbi = row['Status_ITBI']
             icon_itbi = "✅"
             if "Travado" in str(status_itbi) or "IPTU" in str(status_itbi):
@@ -128,15 +116,11 @@ else:
                 icon_itbi = "⏳"
             c2.markdown(f"**ITBI:** {icon_itbi} {status_itbi}")
             
-            # Registro
             c2.markdown(f"**Registro:** {row['Status_Registro']}")
-            
-            # Ocupação
             st.info(f"**Situação Ocupação:** {row['Status_Ocupacao']}")
 
             st.markdown("---")
 
-            # --- FASE 2: REVENDA ---
             st.caption("2️⃣ Etapa de Revenda (Pós-Venda)")
             col_venda1, col_venda2 = st.columns(2)
             col_venda1.markdown(f"**Engenharia:** {row['Status_Engenharia']}")
