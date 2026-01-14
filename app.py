@@ -55,26 +55,27 @@ def calcular_progresso_inteligente(row):
     return min(pontos, 100)
 
 def gerar_barra_titulo(percent):
-    """Gera uma barra visual com emojis quadrados para o título"""
-    blocos_total = 10
-    blocos_cheios = int(percent / 10)
-    blocos_vazios = blocos_total - blocos_cheios
+    """
+    Gera uma barra visual estilo 'loading' com caracteres especiais.
+    Usa o comando :green[] do Streamlit para pintar o texto de verde.
+    """
+    tamanho_total = 10
+    cheios = int(percent / 10) 
+    vazios = tamanho_total - cheios
     
-    # Define a cor dos blocos
-    if percent < 40:
-        quadrado = "🟥" # Vermelho
-    elif percent < 80:
-        quadrado = "🟨" # Amarelo
-    else:
-        quadrado = "🟩" # Verde
-        
-    barra_visual = (quadrado * blocos_cheios) + ("⬜" * blocos_vazios)
-    return barra_visual
+    # Caracteres escolhidos (Bloco Cheio e Sombra Leve)
+    bloco_cheio = "█" 
+    bloco_vazio = "░"
+    
+    # Monta a barra
+    barra_texto = (bloco_cheio * cheios) + (bloco_vazio * vazios)
+    
+    # Aplica a cor verde do Streamlit na string
+    return f":green[{barra_texto}]"
 
-def barra_progresso_colorida(percent):
-    if percent < 40: cor = "#ff4b4b"
-    elif percent < 80: cor = "#ffa421"
-    else: cor = "#09ab3b"
+def barra_progresso_interna(percent):
+    """Barra HTML interna - Verde (cor #09ab3b)"""
+    cor = "#09ab3b" 
     
     st.markdown(f"""
     <div style="width: 100%; background-color: #e0e0e0; border-radius: 5px; height: 10px; margin-bottom: 10px;">
@@ -82,21 +83,22 @@ def barra_progresso_colorida(percent):
     </div>
     """, unsafe_allow_html=True)
 
-# --- CARREGAMENTO ---
+# --- FUNÇÃO CARREGAR LOGO BLINDADA ---
+def mostrar_logo(width_val):
+    try:
+        if os.path.exists("logo.png"): st.image("logo.png", width=width_val)
+        elif os.path.exists("logo.jpg"): st.image("logo.jpg", width=width_val)
+        elif os.path.exists("logo.jpeg"): st.image("logo.jpeg", width=width_val)
+        elif os.path.exists("logo.png.jpg"): st.image("logo.png.jpg", width=width_val)
+    except Exception:
+        pass
+
+# --- CARREGAMENTO DE DADOS ---
 try:
     df = pd.read_csv(url, dtype=str).fillna("")
 except Exception as e:
-    st.error(f"Erro ao conectar: {e}")
+    st.error(f"Erro ao conectar na planilha: {e}")
     st.stop()
-
-# --- TENTA CARREGAR LOGO ---
-def mostrar_logo(width_val):
-    # Tenta achar a logo com nomes variados
-    if os.path.exists("logo.png"): st.image("logo.png", width=width_val)
-    elif os.path.exists("logo.jpg"): st.image("logo.jpg", width=width_val)
-    elif os.path.exists("logo.jpeg"): st.image("logo.jpeg", width=width_val)
-    elif os.path.exists("logo.png.jpg"): st.image("logo.png.jpg", width=width_val) # Pega o seu caso específico
-    else: pass
 
 # --- LOGIN ---
 if 'logado' not in st.session_state:
@@ -146,13 +148,16 @@ else:
         progresso = calcular_progresso_inteligente(row)
         barra_visual = gerar_barra_titulo(progresso)
         
-        # TÍTULO COM BARRA DE BLOCOS
-        # Ex: Imóvel X 🟥🟥⬜⬜⬜⬜⬜⬜⬜⬜ 20%
+        # TÍTULO COM BARRA DE BLOCOS VERDES
+        # Ex: Imóvel X  ████░░░░░░  40%
         titulo_card = f"{row['Imovel_Nome']}⠀{barra_visual}⠀{progresso}%"
         
         with st.expander(titulo_card, expanded=False):
             
-            # Detalhes do Topo
+            # Barra interna (opcional, pode remover se achar repetitivo)
+            barra_progresso_interna(progresso)
+
+            # Cabeçalho
             c_top1, c_top2 = st.columns(2)
             c_top1.caption(f"🆔 ID: {row['ID_Caixa']}")
             c_top1.caption(f"📍 Tipo: {row.get('Tipo_Imovel', '-')}")
@@ -193,6 +198,7 @@ else:
             fluxo.append(("Registro", "Status_Registro", "Link_Registro", "Nota_Registro"))
             fluxo.append(("Cad. Imobiliário", "Status_Cadastro", "Link_Cadastro", "Nota_Cadastro"))
             
+            # Loop Grid 2x2
             for i in range(0, len(fluxo), 2):
                 cols = st.columns(2)
                 itens_da_vez = fluxo[i : i+2]
@@ -201,6 +207,7 @@ else:
                     with cols[j]:
                         st_txt = row.get(col_st, '')
                         icone = obter_icone(st_txt)
+                        
                         st.markdown(f"**{label}**")
                         st.write(f"{icone} {st_txt}")
                         
