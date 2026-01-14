@@ -12,6 +12,16 @@ hide_st_style = """
             #MainMenu {visibility: hidden;}
             header {visibility: hidden;}
             footer {visibility: hidden;}
+            
+            /* Ajuste para botões de popover ficarem discretos e padrão */
+            [data-testid="stPopover"] > button {
+                border: 1px solid #e0e0e0;
+                padding: 2px 10px;
+                font-size: 0.8rem;
+                height: auto;
+                min-height: 0px;
+                line-height: 1.2;
+            }
             </style>
             """
 st.markdown(hide_st_style, unsafe_allow_html=True)
@@ -144,12 +154,8 @@ else:
 
     # --- ÁREA PRINCIPAL ---
     
-    # SAUDAÇÃO NO TOPO
     st.subheader(f"Olá, {nome}")
-    
-    # TÍTULO
     st.title("🏡 Meus Imoveis")
-    
     st.markdown("---")
     
     for index, row in meus_dados.iterrows():
@@ -160,26 +166,43 @@ else:
         with st.expander(titulo_card, expanded=False):
             barra_progresso_interna(progresso)
             
-            # --- CORREÇÃO AQUI: Usando markdown em vez de caption para evitar o erro ---
+            # Cabeçalho do Card
             c1, c2 = st.columns(2)
             c1.markdown(f"<small>🆔 ID: {row['ID_Caixa']}</small>", unsafe_allow_html=True)
             c1.markdown(f"<small>📍 Tipo: {row.get('Tipo_Imovel', '-')}</small>", unsafe_allow_html=True)
             c2.markdown(f"💰 Valor: **:green[{row['Valor_Imovel']}]**")
-            # --------------------------------------------------------------------------
             
             st.divider()
 
+            # --- STATUS DE REGULARIZAÇÃO ---
             st.markdown("##### 🚦 Status de Regularização")
             r1, r2, r3 = st.columns(3)
-            ocup = row.get('Status_Ocupacao', '-')
-            r1.markdown(f"**Ocupação:** :{obter_cor_texto(ocup)}[{ocup}]")
-            iptu = row.get('Debito_IPTU', '-')
-            r2.markdown(f"**IPTU:** :{obter_cor_texto(iptu)}[{iptu}]")
-            if 'casa' not in str(row.get('Tipo_Imovel', '')).lower():
-                cond = row.get('Debito_Condominio', '-')
-                r3.markdown(f"**Condomínio:** :{obter_cor_texto(cond)}[{cond}]")
+            
+            # Coluna 1: Ocupação (COM BOTÃO "OBS" IGUAL AOS OUTROS)
+            with r1:
+                ocup = row.get('Status_Ocupacao', '-')
+                st.markdown(f"**Ocupação:** :{obter_cor_texto(ocup)}[{ocup}]")
+                
+                # Procura se tem Nota
+                nota_ocup = str(row.get('Nota_Ocupacao', '')).strip()
+                # Se tiver nota e não estiver vazio, mostra o botão "Obs"
+                if nota_ocup and nota_ocup.lower() not in ['nan', '']:
+                    st.popover("Obs").write(nota_ocup)
+            
+            # Coluna 2: IPTU
+            with r2:
+                iptu = row.get('Debito_IPTU', '-')
+                st.markdown(f"**IPTU:** :{obter_cor_texto(iptu)}[{iptu}]")
+            
+            # Coluna 3: Condomínio
+            with r3:
+                if 'casa' not in str(row.get('Tipo_Imovel', '')).lower():
+                    cond = row.get('Debito_Condominio', '-')
+                    st.markdown(f"**Condomínio:** :{obter_cor_texto(cond)}[{cond}]")
             
             st.divider()
+
+            # --- ETAPAS DOCUMENTAIS ---
             st.markdown("##### 📝 Etapas Documentais")
             tipo_compra = str(row.get('Tipo_Compra', '')).lower()
             fluxo = [("Contrato", "Status_Contrato", "Link_Contrato", "Nota_Contrato"), ("ITBI", "Status_ITBI", "Link_ITBI", "Nota_ITBI")]
@@ -198,9 +221,11 @@ else:
                         lk = str(row.get(lnk, '')).strip()
                         if lk and "http" in lk: l.link_button("📂", lk)
                         nt_txt = str(row.get(nt, '')).strip()
-                        if nt_txt: n.popover("Obs").write(nt_txt)
+                        if nt_txt and nt_txt.lower() != "nan": n.popover("Obs").write(nt_txt)
                         st.write("")
             st.divider()
+            
+            # --- FASE FINAL ---
             st.caption("Fase Final")
             f1, f2 = st.columns(2)
             f1.info(f"Engenharia: {row.get('Status_Engenharia', '-')}")
