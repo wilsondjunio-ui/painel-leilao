@@ -16,18 +16,16 @@ def obter_icone(status):
     """Define o ícone baseado no texto do status"""
     status = str(status).lower()
     
-    # Lista de palavras para SUCESSO (Verde)
-    palavras_sucesso = ['assinado', 'concluido', 'concluída', 'emitido', 'ok', 'pago', 'registrado', 'pronto']
-    # Lista de palavras para ANDAMENTO (Lápis)
-    palavras_andamento = ['pendente', 'andamento', 'aguardando', 'fazer', 'processamento', 'analise']
-    # Lista de palavras para ATENÇÃO (Alerta)
-    palavras_atencao = ['travado', 'problema', 'atenção', 'erro']
+    # Listas de palavras chave
+    sucesso = ['assinado', 'concluido', 'concluída', 'emitido', 'ok', 'pago', 'registrado', 'pronto']
+    andamento = ['pendente', 'andamento', 'aguardando', 'fazer', 'processamento', 'analise']
+    atencao = ['travado', 'problema', 'atenção', 'erro']
 
-    if any(x in status for x in palavras_sucesso):
+    if any(x in status for x in sucesso):
         return "✅"
-    elif any(x in status for x in palavras_andamento):
+    elif any(x in status for x in andamento):
         return "📝"
-    elif any(x in status for x in palavras_atencao):
+    elif any(x in status for x in atencao):
         return "⚠️"
     elif status == "nan" or status == "":
         return "⚪"
@@ -38,15 +36,14 @@ def calcular_progresso_auto(row):
     """Calcula % baseado nas 5 etapas principais (20% cada)"""
     etapas = ['Status_Contrato', 'Status_ITBI', 'Status_Escritura', 'Status_Registro', 'Status_Ficha']
     pontos = 0
-    palavras_sucesso = ['assinado', 'concluido', 'concluída', 'emitido', 'ok', 'pago', 'registrado', 'pronto']
+    sucesso = ['assinado', 'concluido', 'concluída', 'emitido', 'ok', 'pago', 'registrado', 'pronto']
     
     for etapa in etapas:
         status = str(row.get(etapa, '')).lower()
-        # Se tiver palavras chave positivas, ganha 20 pontos
-        if any(x in status for x in palavras_sucesso):
+        if any(x in status for x in sucesso):
             pontos += 20
             
-    return min(pontos, 100) # Garante que não passa de 100
+    return min(pontos, 100)
 
 def barra_progresso_colorida(percent):
     """Cria uma barra HTML com cor dinâmica"""
@@ -57,18 +54,18 @@ def barra_progresso_colorida(percent):
     else:
         cor = "#09ab3b" # Verde
         
-    st.markdown(f"""
+    html_barra = f"""
     <div style="width: 100%; background-color: #f0f2f6; border-radius: 10px; height: 20px;">
         <div style="width: {percent}%; background-color: {cor}; height: 20px; border-radius: 10px; text-align: center; color: white; font-size: 12px; line-height: 20px; font-weight: bold;">
             {percent}%
         </div>
     </div>
     <br>
-    """, unsafe_allow_html=True)
+    """
+    st.markdown(html_barra, unsafe_allow_html=True)
 
 # --- CARREGAMENTO DE DADOS ---
 try:
-    # Lê todas as colunas como string para evitar erros
     df = pd.read_csv(url, dtype=str).fillna("")
 except Exception as e:
     st.error(f"Erro ao conectar na planilha: {e}")
@@ -80,7 +77,6 @@ if 'logado' not in st.session_state:
 
 if not st.session_state['logado']:
     
-    # Tenta mostrar a logo se existir no GitHub
     try:
         st.image("logo.png", width=200) 
     except:
@@ -98,7 +94,6 @@ if not st.session_state['logado']:
             cpf_limpo = cpf_input.replace(".", "").replace("-", "").strip()
             
             try:
-                # Procura o CPF na coluna correta
                 filtro = df['CPFs_Acesso'].str.contains(cpf_limpo, na=False)
                 cliente_df = df[filtro]
                 
@@ -110,7 +105,7 @@ if not st.session_state['logado']:
                 else:
                     st.error("CPF não encontrado.")
             except KeyError:
-                st.error("Erro: Coluna 'CPFs_Acesso' não encontrada. Verifique os cabeçalhos da planilha.")
+                st.error("Erro: Coluna 'CPFs_Acesso' não encontrada.")
         else:
             st.warning("Digite o CPF.")
 
@@ -134,24 +129,18 @@ else:
     
     for index, row in meus_dados.iterrows():
         
-        # 1. Calcula Progresso Automático
         progresso = calcular_progresso_auto(row)
-        
         titulo_botao = f"{row['Imovel_Nome']} ({progresso}%)"
         
         with st.expander(titulo_botao, expanded=False):
             
-            # --- Cabeçalho do Card ---
             c_head1, c_head2 = st.columns([2, 2])
             c_head1.caption(f"🆔 ID Caixa: {row['ID_Caixa']}")
             c_head2.markdown(f"💰 Valor: **:green[{row['Valor_Imovel']}]**")
             
-            # --- Barra de Progresso Colorida ---
             st.write("Evolução do Processo:")
             barra_progresso_colorida(progresso)
 
-            # --- Dicionário das 5 Etapas para Loop ---
-            # Estrutura: Nome na Tela | Coluna Status | Coluna Link | Coluna Nota
             etapas_fluxo = [
                 ("📝 Ficha do Imóvel", "Status_Ficha", "Link_Ficha", "Nota_Ficha"),
                 ("📄 Contrato", "Status_Contrato", "Link_Contrato", "Nota_Contrato"),
@@ -162,32 +151,32 @@ else:
 
             st.caption("1️⃣ Etapa de Regularização")
             
-            # Cria as linhas das etapas dinamicamente
             for label, col_status, col_link, col_nota in etapas_fluxo:
                 st_txt = row.get(col_status, '')
                 icone = obter_icone(st_txt)
                 
-                # Layout: 3 Colunas (Status | Doc | Nota)
                 c1, c2, c3 = st.columns([5, 1, 1])
-                
-                # Coluna 1: Ícone + Texto Status
                 c1.markdown(f"**{label}:** {icone} {st_txt}")
                 
-                # Coluna 2: Botão Link (Só aparece se tiver link válido)
                 link = str(row.get(col_link, '')).strip()
                 if link and "http" in link:
                     c2.link_button("📂", link, help="Abrir Documento")
                 
-                # Coluna 3: Botão Nota (Só aparece se tiver nota)
                 nota = str(row.get(col_nota, '')).strip()
                 if nota and nota.lower() != "nan":
                     c3.popover("ℹ️", help="Ver observações").write(nota)
                 
-                st.divider() # Linha fina separadora
+                st.divider()
 
-            # --- FASE 2: PÓS-VENDA ---
             st.caption("2️⃣ Etapa de Pós-Venda")
             col_venda1, col_venda2 = st.columns(2)
             
-            # Ocupação e Engenharia
-            col_venda1.info(f
+            col_venda1.info(f"**Ocupação:** {row.get('Status_Ocupacao', '-')}")
+            col_venda1.write(f"**Engenharia:** {row.get('Status_Engenharia', '-')}")
+            
+            status_venda = str(row.get('Status_Revenda', '-'))
+            if "vendido" in status_venda.lower():
+                col_venda2.success(f"**Revenda:** 🎉 {status_venda}")
+                st.balloons()
+            else:
+                col_venda2.warning(f"**Revenda:** {status_venda}")
