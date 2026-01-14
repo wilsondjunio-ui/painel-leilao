@@ -9,21 +9,30 @@ st.set_page_config(page_title="Gestão Leilões", page_icon="🏢", layout="cent
 # --- CONEXÃO COM PLANILHA (COM ANTI-CACHE) ---
 sheet_id = "1ke17ffjYUXwOf2gFLJorbWH46uY-EbEWCw0099iYaPI"
 sheet_name = "Dados"
+# O 't' força atualização constante dos dados
 url = f"https://docs.google.com/spreadsheets/d/{sheet_id}/gviz/tq?tqx=out:csv&sheet={sheet_name}&t={int(time.time())}"
 
-# --- FUNÇÕES VISUAIS ---
+# --- FUNÇÕES VISUAIS E LÓGICAS ---
+
 def obter_icone(status):
     status = str(status).lower()
-    if any(x in status for x in ['assinado', 'concluido', 'concluída', 'emitido', 'ok', 'pago', 'registrado', 'pronto', 'desocupado', 'livre']): return "✅"
-    elif any(x in status for x in ['pendente', 'andamento', 'aguardando', 'fazer', 'processamento', 'analise', 'a pagar', 'ocupado']): return "📝"
-    elif any(x in status for x in ['travado', 'problema', 'atenção', 'erro']): return "⚠️"
-    elif status in ["nan", ""]: return "⚪"
-    else: return "ℹ️"
+    if any(x in status for x in ['assinado', 'concluido', 'concluída', 'emitido', 'ok', 'pago', 'registrado', 'pronto', 'desocupado', 'livre']):
+        return "✅"
+    elif any(x in status for x in ['pendente', 'andamento', 'aguardando', 'fazer', 'processamento', 'analise', 'a pagar', 'ocupado']):
+        return "📝"
+    elif any(x in status for x in ['travado', 'problema', 'atenção', 'erro']):
+        return "⚠️"
+    elif status in ["nan", ""]:
+        return "⚪"
+    else:
+        return "ℹ️"
 
 def obter_cor_texto(texto):
     texto = str(texto).lower()
-    if any(x in texto for x in ['ocupado', 'a pagar', 'pendente', 'atrasado']): return "red"
-    if any(x in texto for x in ['desocupado', 'pago', 'em dia', 'ok']): return "green"
+    if any(x in texto for x in ['ocupado', 'a pagar', 'pendente', 'atrasado']):
+        return "red"
+    if any(x in texto for x in ['desocupado', 'pago', 'em dia', 'ok']):
+        return "green"
     return "black"
 
 def calcular_progresso_inteligente(row):
@@ -38,32 +47,38 @@ def calcular_progresso_inteligente(row):
     sucesso = ['assinado', 'concluido', 'concluída', 'emitido', 'ok', 'pago', 'registrado', 'pronto']
     for etapa in etapas:
         status = str(row.get(etapa, '')).lower()
-        if any(x in status for x in sucesso): pontos += peso
+        if any(x in status for x in sucesso):
+            pontos += peso
     return min(pontos, 100)
 
 def gerar_barra_titulo(percent):
-    tamanho = 10
+    tamanho_total = 10
     cheios = int(percent / 10) 
-    barra = ("█" * cheios) + ("░" * (tamanho - cheios))
-    return f":green[{barra}]"
+    vazios = tamanho_total - cheios
+    bloco_cheio = "█" 
+    bloco_vazio = "░"
+    barra_texto = (bloco_cheio * cheios) + (bloco_vazio * vazios)
+    return f":green[{barra_texto}]"
 
 def barra_progresso_interna(percent):
-    st.markdown(f"""<div style="width:100%;background-color:#e0e0e0;border-radius:5px;height:10px;margin-bottom:10px;"><div style="width:{percent}%;background-color:#09ab3b;height:10px;border-radius:5px;"></div></div>""", unsafe_allow_html=True)
+    cor = "#09ab3b" 
+    st.markdown(f"""
+    <div style="width: 100%; background-color: #e0e0e0; border-radius: 5px; height: 10px; margin-bottom: 10px;">
+        <div style="width: {percent}%; background-color: {cor}; height: 10px; border-radius: 5px;"></div>
+    </div>
+    """, unsafe_allow_html=True)
 
-def mostrar_logo(w):
+def mostrar_logo(width_val):
     try:
-        if os.path.exists("logo.png"): st.image("logo.png", width=w)
+        if os.path.exists("logo.png"): st.image("logo.png", width=width_val)
     except: pass
 
 # --- CARREGAMENTO DE DADOS ---
 try:
-    # Lê a planilha crua
     df = pd.read_csv(url, dtype=str).fillna("")
-    # Limpa nomes das colunas (remove espaços nas bordas)
     df.columns = df.columns.str.strip()
-    
 except Exception as e:
-    st.error(f"Erro fatal na conexão: {e}")
+    st.error(f"Erro ao conectar: {e}")
     st.stop()
 
 # --- LOGIN ---
@@ -76,30 +91,28 @@ if not st.session_state['logado']:
     
     with st.container(border=True):
         cpf_input = st.text_input("CPF:", type="password")
-        entrar = st.button("Entrar", use_container_width=True)
-
-        if entrar:
+        if st.button("Entrar", use_container_width=True):
             if cpf_input:
-                # 1. Limpa o que foi digitado (Deixa só números)
+                # Limpa o input (deixa só numeros)
                 cpf_limpo = ''.join(filter(str.isdigit, cpf_input))
                 
                 try:
-                    # 2. LÓGICA DE BUSCA MANUAL (Mais segura)
-                    # Vamos olhar linha por linha para ver se o CPF está lá dentro
-                    df['Acesso_Liberado'] = False
+                    df['Acesso_Autorizado'] = False
                     
                     if 'CPFs_Acesso' in df.columns:
                         for index, row in df.iterrows():
-                            # Pega o conteúdo da célula na planilha e limpa (tira pontos, traços, espaços)
+                            # Pega o conteúdo da célula
                             celula_crua = str(row['CPFs_Acesso'])
-                            celula_limpa = ''.join(filter(str.isdigit, celula_crua))
+                            # Troca tudo que não for número por espaço
+                            celula_limpa = ''.join([c if c.isdigit() else ' ' for c in celula_crua])
+                            # Cria lista de CPFs daquela célula
+                            lista_cpfs = celula_limpa.split()
                             
-                            # Verifica: O CPF digitado está dentro dessa tripa de números?
-                            if cpf_limpo in celula_limpa and cpf_limpo != "":
-                                df.at[index, 'Acesso_Liberado'] = True
+                            # Verifica se o CPF digitado está na lista
+                            if cpf_limpo in lista_cpfs:
+                                df.at[index, 'Acesso_Autorizado'] = True
                         
-                        # Filtra apenas quem teve acesso liberado
-                        cliente_df = df[df['Acesso_Liberado'] == True]
+                        cliente_df = df[df['Acesso_Autorizado'] == True]
                         
                         if not cliente_df.empty:
                             st.session_state['logado'] = True
@@ -107,21 +120,13 @@ if not st.session_state['logado']:
                             st.session_state['nome_investidor'] = cliente_df.iloc[0]['Investidor']
                             st.rerun()
                         else:
-                            st.error(f"CPF {cpf_limpo} não encontrado na lista.")
+                            st.error("CPF não encontrado.")
                     else:
-                        st.error("ERRO: Coluna 'CPFs_Acesso' não encontrada na planilha.")
-                        
+                        st.error("Erro na planilha: Coluna 'CPFs_Acesso' não encontrada.")
                 except Exception as e:
-                    st.error(f"Erro técnico: {e}")
+                    st.error(f"Erro: {e}")
             else:
                 st.warning("Digite o CPF.")
-
-    # --- ÁREA DE DIAGNÓSTICO (O ESPIÃO) ---
-    st.markdown("---")
-    with st.expander("🕵️‍♂️ ÁREA TÉCNICA (Se der erro, abra aqui)"):
-        st.write("Verifique abaixo se a coluna 'CPFs_Acesso' existe e como os dados estão chegando:")
-        st.dataframe(df.head())
-        st.write(f"**Colunas detectadas:** {list(df.columns)}")
 
 # --- PAINEL PRINCIPAL ---
 else:
