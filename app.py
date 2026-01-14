@@ -6,23 +6,12 @@ import time
 # --- CONFIGURAÇÃO DA PÁGINA ---
 st.set_page_config(page_title="Gestão Leilões", page_icon="🏢", layout="centered")
 
-# --- ESTILOS CSS (COR DE FUNDO + ESCONDER MENU) ---
-# Aqui definimos a cor de papel envelhecido e limpamos o visual
+# --- ESCONDER MENU, CABEÇALHO E RODAPÉ (VISUAL LIMPO) ---
 hide_st_style = """
             <style>
             #MainMenu {visibility: hidden;}
             header {visibility: hidden;}
             footer {visibility: hidden;}
-            
-            /* MUDANÇA DE COR DE FUNDO AQUI */
-            .stApp {
-                background-color: #f5f0e1; /* Cor creme/papel natural */
-            }
-            /* Ajuste opcional para os containers internos ficarem brancos ou transparentes */
-            [data-testid="stExpander"] {
-                background-color: #ffffff; /* Deixa os cartões dos imóveis brancos para contraste */
-                border-radius: 10px;
-            }
             </style>
             """
 st.markdown(hide_st_style, unsafe_allow_html=True)
@@ -30,7 +19,6 @@ st.markdown(hide_st_style, unsafe_allow_html=True)
 # --- CONEXÃO COM PLANILHA (COM ANTI-CACHE) ---
 sheet_id = "1ke17ffjYUXwOf2gFLJorbWH46uY-EbEWCw0099iYaPI"
 sheet_name = "Dados"
-# O 't' força atualização constante dos dados
 url = f"https://docs.google.com/spreadsheets/d/{sheet_id}/gviz/tq?tqx=out:csv&sheet={sheet_name}&t={int(time.time())}"
 
 # --- FUNÇÕES VISUAIS E LÓGICAS ---
@@ -154,21 +142,14 @@ else:
     nome = st.session_state['nome_investidor']
     meus_dados = st.session_state['dados_cliente']
     
-    # --- BARRA LATERAL (AGORA SÓ COM LOGO E SAIR) ---
     with st.sidebar:
         mostrar_logo(150)
-        # st.write(f"Olá, **{nome}**") <-- REMOVIDO DAQUI
-        st.write("") # Espaço
-        if st.button("Sair", use_container_width=True):
+        st.write(f"Olá, **{nome}**")
+        if st.button("Sair"):
             st.session_state['logado'] = False
             st.rerun()
 
-    # --- ÁREA PRINCIPAL ---
     st.title("🏡 Meus Imoveis")
-    
-    # --- NOVO LOCAL DO NOME DO CLIENTE ---
-    st.subheader(f"Olá, {nome} 👋")
-    
     st.markdown("---")
     
     for index, row in meus_dados.iterrows():
