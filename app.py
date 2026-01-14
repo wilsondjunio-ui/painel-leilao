@@ -7,7 +7,7 @@ st.set_page_config(page_title="Gestão Leilões", page_icon="🏢", layout="cent
 # --- CONEXÃO DIRETA (SEM SENHA) ---
 sheet_id = "1ke17ffjYUXwOf2gFLJorbWH46uY-EbEWCw0099iYaPI"
 sheet_name = "Dados"
-# Adicionei 'gid' para garantir a aba certa e cache busting simples
+# URL de exportação direta do Google Sheets
 url = f"https://docs.google.com/spreadsheets/d/{sheet_id}/gviz/tq?tqx=out:csv&sheet={sheet_name}"
 
 # --- FUNÇÕES AUXILIARES (A MÁGICA) ---
@@ -15,11 +15,19 @@ url = f"https://docs.google.com/spreadsheets/d/{sheet_id}/gviz/tq?tqx=out:csv&sh
 def obter_icone(status):
     """Define o ícone baseado no texto do status"""
     status = str(status).lower()
-    if any(x in status for in ['assinado', 'concluido', 'concluída', 'emitido', 'ok', 'pago', 'registrado', 'pronto']):
+    
+    # Lista de palavras para SUCESSO (Verde)
+    palavras_sucesso = ['assinado', 'concluido', 'concluída', 'emitido', 'ok', 'pago', 'registrado', 'pronto']
+    # Lista de palavras para ANDAMENTO (Lápis)
+    palavras_andamento = ['pendente', 'andamento', 'aguardando', 'fazer', 'processamento', 'analise']
+    # Lista de palavras para ATENÇÃO (Alerta)
+    palavras_atencao = ['travado', 'problema', 'atenção', 'erro']
+
+    if any(x in status for x in palavras_sucesso):
         return "✅"
-    elif any(x in status for in ['pendente', 'andamento', 'aguardando', 'fazer', 'processamento', 'analise']):
+    elif any(x in status for x in palavras_andamento):
         return "📝"
-    elif any(x in status for in ['travado', 'problema', 'atenção', 'erro']):
+    elif any(x in status for x in palavras_atencao):
         return "⚠️"
     elif status == "nan" or status == "":
         return "⚪"
@@ -30,11 +38,12 @@ def calcular_progresso_auto(row):
     """Calcula % baseado nas 5 etapas principais (20% cada)"""
     etapas = ['Status_Contrato', 'Status_ITBI', 'Status_Escritura', 'Status_Registro', 'Status_Ficha']
     pontos = 0
+    palavras_sucesso = ['assinado', 'concluido', 'concluída', 'emitido', 'ok', 'pago', 'registrado', 'pronto']
     
     for etapa in etapas:
         status = str(row.get(etapa, '')).lower()
         # Se tiver palavras chave positivas, ganha 20 pontos
-        if any(x in status for in ['assinado', 'concluido', 'concluída', 'emitido', 'ok', 'pago', 'registrado', 'pronto']):
+        if any(x in status for x in palavras_sucesso):
             pontos += 20
             
     return min(pontos, 100) # Garante que não passa de 100
@@ -89,6 +98,7 @@ if not st.session_state['logado']:
             cpf_limpo = cpf_input.replace(".", "").replace("-", "").strip()
             
             try:
+                # Procura o CPF na coluna correta
                 filtro = df['CPFs_Acesso'].str.contains(cpf_limpo, na=False)
                 cliente_df = df[filtro]
                 
@@ -163,14 +173,14 @@ else:
                 # Coluna 1: Ícone + Texto Status
                 c1.markdown(f"**{label}:** {icone} {st_txt}")
                 
-                # Coluna 2: Botão Link (Só aparece se tiver link)
-                link = row.get(col_link, '').strip()
+                # Coluna 2: Botão Link (Só aparece se tiver link válido)
+                link = str(row.get(col_link, '')).strip()
                 if link and "http" in link:
                     c2.link_button("📂", link, help="Abrir Documento")
                 
                 # Coluna 3: Botão Nota (Só aparece se tiver nota)
-                nota = row.get(col_nota, '').strip()
-                if nota:
+                nota = str(row.get(col_nota, '')).strip()
+                if nota and nota.lower() != "nan":
                     c3.popover("ℹ️", help="Ver observações").write(nota)
                 
                 st.divider() # Linha fina separadora
@@ -180,13 +190,4 @@ else:
             col_venda1, col_venda2 = st.columns(2)
             
             # Ocupação e Engenharia
-            col_venda1.info(f"**Ocupação:** {row.get('Status_Ocupacao', '-')}")
-            col_venda1.write(f"**Engenharia:** {row.get('Status_Engenharia', '-')}")
-            
-            # Status Revenda (Com festa se vendido)
-            status_venda = row.get('Status_Revenda', '-')
-            if "vendido" in str(status_venda).lower():
-                col_venda2.success(f"**Revenda:** 🎉 {status_venda}")
-                st.balloons()
-            else:
-                col_venda2.warning(f"**Revenda:** {status_venda}")
+            col_venda1.info(f
