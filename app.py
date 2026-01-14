@@ -34,7 +34,7 @@ def obter_cor_texto(texto):
     return "black"
 
 def calcular_progresso_inteligente(row):
-    """Calcula % baseado no tipo de compra (Financiado = 4 etapas, Vista = 5 etapas)"""
+    """Calcula % baseado no tipo de compra"""
     tipo_compra = str(row.get('Tipo_Compra', '')).lower()
     
     if 'financiado' in tipo_compra:
@@ -55,28 +55,19 @@ def calcular_progresso_inteligente(row):
     return min(pontos, 100)
 
 def gerar_barra_titulo(percent):
-    """
-    Gera uma barra visual estilo 'loading' com caracteres especiais.
-    Usa o comando :green[] do Streamlit para pintar o texto de verde.
-    """
+    """Gera a barra de blocos (█ e ░) verde"""
     tamanho_total = 10
     cheios = int(percent / 10) 
     vazios = tamanho_total - cheios
     
-    # Caracteres escolhidos (Bloco Cheio e Sombra Leve)
     bloco_cheio = "█" 
     bloco_vazio = "░"
     
-    # Monta a barra
     barra_texto = (bloco_cheio * cheios) + (bloco_vazio * vazios)
-    
-    # Aplica a cor verde do Streamlit na string
     return f":green[{barra_texto}]"
 
 def barra_progresso_interna(percent):
-    """Barra HTML interna - Verde (cor #09ab3b)"""
     cor = "#09ab3b" 
-    
     st.markdown(f"""
     <div style="width: 100%; background-color: #e0e0e0; border-radius: 5px; height: 10px; margin-bottom: 10px;">
         <div style="width: {percent}%; background-color: {cor}; height: 10px; border-radius: 5px;"></div>
@@ -93,9 +84,18 @@ def mostrar_logo(width_val):
     except Exception:
         pass
 
-# --- CARREGAMENTO DE DADOS ---
+# --- CARREGAMENTO DE DADOS (COM LIMPEZA) ---
 try:
+    # 1. Carrega tudo como texto
     df = pd.read_csv(url, dtype=str).fillna("")
+    
+    # 2. LIMPEZA DOS CABEÇALHOS (Remove espaços extras nos nomes das colunas)
+    df.columns = df.columns.str.strip()
+    
+    # 3. LIMPEZA DOS CPFS (Remove espaços extras dentro dos dados)
+    if 'CPFs_Acesso' in df.columns:
+        df['CPFs_Acesso'] = df['CPFs_Acesso'].str.strip()
+        
 except Exception as e:
     st.error(f"Erro ao conectar na planilha: {e}")
     st.stop()
@@ -112,10 +112,14 @@ if not st.session_state['logado']:
         cpf_input = st.text_input("CPF:", type="password")
         if st.button("Entrar", use_container_width=True):
             if cpf_input:
+                # Limpa o que o usuário digitou (tira pontos, traços e espaços)
                 cpf_limpo = cpf_input.replace(".", "").replace("-", "").strip()
+                
                 try:
-                    filtro = df['CPFs_Acesso'].str.contains(cpf_limpo, na=False)
+                    # Busca exata (agora funciona sem espaço extra)
+                    filtro = df['CPFs_Acesso'] == cpf_limpo
                     cliente_df = df[filtro]
+                    
                     if not cliente_df.empty:
                         st.session_state['logado'] = True
                         st.session_state['dados_cliente'] = cliente_df
@@ -123,8 +127,8 @@ if not st.session_state['logado']:
                         st.rerun()
                     else:
                         st.error("CPF não encontrado.")
-                except:
-                    st.error("Erro na leitura da coluna CPF.")
+                except Exception as e:
+                    st.error(f"Erro técnico ao buscar CPF: {e}")
             else:
                 st.warning("Digite o CPF.")
 
@@ -148,16 +152,12 @@ else:
         progresso = calcular_progresso_inteligente(row)
         barra_visual = gerar_barra_titulo(progresso)
         
-        # TÍTULO COM BARRA DE BLOCOS VERDES
-        # Ex: Imóvel X  ████░░░░░░  40%
         titulo_card = f"{row['Imovel_Nome']}⠀{barra_visual}⠀{progresso}%"
         
         with st.expander(titulo_card, expanded=False):
             
-            # Barra interna (opcional, pode remover se achar repetitivo)
             barra_progresso_interna(progresso)
 
-            # Cabeçalho
             c_top1, c_top2 = st.columns(2)
             c_top1.caption(f"🆔 ID: {row['ID_Caixa']}")
             c_top1.caption(f"📍 Tipo: {row.get('Tipo_Imovel', '-')}")
@@ -165,7 +165,6 @@ else:
             
             st.divider()
 
-            # Status de Regularização
             st.markdown("##### 🚦 Status de Regularização")
             col_reg1, col_reg2, col_reg3 = st.columns(3)
             
@@ -185,7 +184,6 @@ else:
             
             st.divider()
 
-            # Fluxo Documental (Grid 2x2)
             st.markdown("##### 📝 Etapas Documentais")
             tipo_compra = str(row.get('Tipo_Compra', '')).lower()
             
@@ -198,7 +196,6 @@ else:
             fluxo.append(("Registro", "Status_Registro", "Link_Registro", "Nota_Registro"))
             fluxo.append(("Cad. Imobiliário", "Status_Cadastro", "Link_Cadastro", "Nota_Cadastro"))
             
-            # Loop Grid 2x2
             for i in range(0, len(fluxo), 2):
                 cols = st.columns(2)
                 itens_da_vez = fluxo[i : i+2]
@@ -223,7 +220,6 @@ else:
             
             st.divider()
             
-            # Fase Final
             st.caption("Fase Final")
             ce1, ce2 = st.columns(2)
             ce1.info(f"Engenharia: {row.get('Status_Engenharia', '-')}")
