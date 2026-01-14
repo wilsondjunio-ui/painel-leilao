@@ -6,73 +6,22 @@ import time
 # --- CONFIGURAÇÃO DA PÁGINA ---
 st.set_page_config(page_title="Gestão Leilões", page_icon="🏢", layout="centered")
 
-# --- CSS VISUAL (BRANCO + AZUL MARINHO + MENU CORRIGIDO) ---
+# --- ESTILOS CSS (COR DE FUNDO + ESCONDER MENU) ---
+# Aqui definimos a cor de papel envelhecido e limpamos o visual
 hide_st_style = """
             <style>
-            /* --- 1. ESCONDER ÍCONES DO CANTO SUPERIOR DIREITO --- */
-            /* Esconde a barra de ferramentas (Deploy, Manage App, etc.) */
-            [data-testid="stToolbar"] {
-                visibility: hidden;
-            }
-            /* Esconde a linha colorida de decoração no topo */
-            [data-testid="stDecoration"] {
-                display: none;
-            }
-            /* Esconde rodapé */
-            footer {
-                visibility: hidden;
-            }
-
-            /* --- 2. MENU HAMBÚRGUER (☰) BRANCO --- */
-            /* Deixa o cabeçalho transparente */
-            header[data-testid="stHeader"] {
-                background: transparent !important;
-            }
-            /* Pinta o ícone SVG do menu de BRANCO */
-            [data-testid="stHeader"] button > div > svg {
-                fill: #FFFFFF !important;
-                stroke: #FFFFFF !important;
-            }
-            /* Garante que o texto do botão (se houver) seja branco */
-            [data-testid="baseButton-header"] {
-                color: #FFFFFF !important;
-            }
-
-            /* --- 3. FUNDO GERAL (AZUL MARINHO -> BRANCO) --- */
+            #MainMenu {visibility: hidden;}
+            header {visibility: hidden;}
+            footer {visibility: hidden;}
+            
+            /* MUDANÇA DE COR DE FUNDO AQUI */
             .stApp {
-                background: linear-gradient(180deg, #0A2342 0%, #FFFFFF 85%);
-                background-attachment: fixed;
+                background-color: #f5f0e1; /* Cor creme/papel natural */
             }
-
-            /* --- 4. CARTÕES DOS IMÓVEIS (AGORA BRANCOS) --- */
+            /* Ajuste opcional para os containers internos ficarem brancos ou transparentes */
             [data-testid="stExpander"] {
-                background-color: #FFFFFF !important; /* Branco Puro */
-                border: 1px solid #E0E0E0 !important; /* Borda cinza suave */
-                border-radius: 12px;
-                box-shadow: 0 4px 6px rgba(0,0,0,0.05); /* Sombra bem leve */
-            }
-            
-            /* Título do cartão em Azul Escuro para combinar com o tema */
-            .streamlit-expanderHeader {
-                color: #0A2342 !important; 
-                font-weight: bold;
-            }
-            
-            /* Texto interno do cartão em cinza escuro */
-            [data-testid="stExpander"] .stMarkdown {
-                color: #333333;
-            }
-
-            /* --- 5. BARRA LATERAL --- */
-            [data-testid="stSidebar"] {
-                background-color: #F8F9FA;
-                border-right: 1px solid #eee;
-            }
-            
-            /* Títulos principais em branco (na área azul) */
-            h1, h3.stSubheader {
-                color: #FFFFFF !important;
-                text-shadow: 0 1px 2px rgba(0,0,0,0.3);
+                background-color: #ffffff; /* Deixa os cartões dos imóveis brancos para contraste */
+                border-radius: 10px;
             }
             </style>
             """
@@ -81,6 +30,7 @@ st.markdown(hide_st_style, unsafe_allow_html=True)
 # --- CONEXÃO COM PLANILHA (COM ANTI-CACHE) ---
 sheet_id = "1ke17ffjYUXwOf2gFLJorbWH46uY-EbEWCw0099iYaPI"
 sheet_name = "Dados"
+# O 't' força atualização constante dos dados
 url = f"https://docs.google.com/spreadsheets/d/{sheet_id}/gviz/tq?tqx=out:csv&sheet={sheet_name}&t={int(time.time())}"
 
 # --- FUNÇÕES VISUAIS E LÓGICAS ---
@@ -164,14 +114,22 @@ if not st.session_state['logado']:
         cpf_input = st.text_input("CPF:", type="password")
         if st.button("Entrar", use_container_width=True):
             if cpf_input:
+                # Limpa o input (deixa só numeros)
                 cpf_limpo = ''.join(filter(str.isdigit, cpf_input))
+                
                 try:
                     df['Acesso_Autorizado'] = False
+                    
                     if 'CPFs_Acesso' in df.columns:
                         for index, row in df.iterrows():
+                            # Pega o conteúdo da célula
                             celula_crua = str(row['CPFs_Acesso'])
+                            # Troca tudo que não for número por espaço
                             celula_limpa = ''.join([c if c.isdigit() else ' ' for c in celula_crua])
+                            # Cria lista de CPFs daquela célula
                             lista_cpfs = celula_limpa.split()
+                            
+                            # Verifica se o CPF digitado está na lista
                             if cpf_limpo in lista_cpfs:
                                 df.at[index, 'Acesso_Autorizado'] = True
                         
@@ -196,17 +154,21 @@ else:
     nome = st.session_state['nome_investidor']
     meus_dados = st.session_state['dados_cliente']
     
-    # --- BARRA LATERAL ---
+    # --- BARRA LATERAL (AGORA SÓ COM LOGO E SAIR) ---
     with st.sidebar:
         mostrar_logo(150)
-        st.write("")
+        # st.write(f"Olá, **{nome}**") <-- REMOVIDO DAQUI
+        st.write("") # Espaço
         if st.button("Sair", use_container_width=True):
             st.session_state['logado'] = False
             st.rerun()
 
     # --- ÁREA PRINCIPAL ---
     st.title("🏡 Meus Imoveis")
+    
+    # --- NOVO LOCAL DO NOME DO CLIENTE ---
     st.subheader(f"Olá, {nome} 👋")
+    
     st.markdown("---")
     
     for index, row in meus_dados.iterrows():
@@ -260,4 +222,3 @@ else:
             rv = str(row.get('Status_Revenda', '-'))
             if "vendido" in rv.lower(): f2.success(f"Revenda: {rv}")
             else: f2.warning(f"Revenda: {rv}")
-
