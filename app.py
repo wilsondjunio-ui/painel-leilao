@@ -140,7 +140,7 @@ else:
             st.session_state['logado'] = False
             st.rerun()
 
-    st.title("🏡 Meus Imóveis")
+    st.title("🏡 Meus Imoveis")
     st.markdown("---")
     
     for index, row in meus_dados.iterrows():
@@ -194,4 +194,5 @@ else:
             rv = str(row.get('Status_Revenda', '-'))
             if "vendido" in rv.lower(): f2.success(f"Revenda: {rv}")
             else: f2.warning(f"Revenda: {rv}")
+
 
