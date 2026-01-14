@@ -6,57 +6,70 @@ import time
 # --- CONFIGURAÇÃO DA PÁGINA ---
 st.set_page_config(page_title="Gestão Leilões", page_icon="🏢", layout="centered")
 
-# --- CSS PERSONALIZADO (CORREÇÃO MOBILE + NOVAS CORES) ---
+# --- CSS VISUAL (BRANCO + AZUL MARINHO + MENU CORRIGIDO) ---
 hide_st_style = """
             <style>
-            /* --- 1. CORREÇÃO DA BARRA LATERAL NO MOBILE --- */
-            /* Esconde apenas o menu de 3 pontinhos e o rodapé, não o cabeçalho inteiro */
-            #MainMenu {visibility: hidden;}
-            footer {visibility: hidden;}
-
-            /* Deixa a área do cabeçalho transparente para não tapar o degradê */
-            header[data-testid="stHeader"] {
-                background: transparent;
+            /* --- 1. ESCONDER ÍCONES DO CANTO SUPERIOR DIREITO --- */
+            /* Esconde a barra de ferramentas (Deploy, Manage App, etc.) */
+            [data-testid="stToolbar"] {
+                visibility: hidden;
             }
-            
-            /* FORÇA o ícone do menu (hambúrguer ☰) a ficar BRANCO para aparecer no fundo escuro */
-            button[data-testid="baseButton-headerNoPadding"] {
+            /* Esconde a linha colorida de decoração no topo */
+            [data-testid="stDecoration"] {
+                display: none;
+            }
+            /* Esconde rodapé */
+            footer {
+                visibility: hidden;
+            }
+
+            /* --- 2. MENU HAMBÚRGUER (☰) BRANCO --- */
+            /* Deixa o cabeçalho transparente */
+            header[data-testid="stHeader"] {
+                background: transparent !important;
+            }
+            /* Pinta o ícone SVG do menu de BRANCO */
+            [data-testid="stHeader"] button > div > svg {
+                fill: #FFFFFF !important;
+                stroke: #FFFFFF !important;
+            }
+            /* Garante que o texto do botão (se houver) seja branco */
+            [data-testid="baseButton-header"] {
                 color: #FFFFFF !important;
             }
 
-            /* --- 2. NOVO FUNDO (AZUL MARINHO -> BRANCO) --- */
+            /* --- 3. FUNDO GERAL (AZUL MARINHO -> BRANCO) --- */
             .stApp {
-                /* Degradê vertical: Azul Marinho profundo no topo, descendo para branco puro */
                 background: linear-gradient(180deg, #0A2342 0%, #FFFFFF 85%);
                 background-attachment: fixed;
             }
 
-            /* --- 3. CARTÕES "MAIS LARANJAS" --- */
+            /* --- 4. CARTÕES DOS IMÓVEIS (AGORA BRANCOS) --- */
             [data-testid="stExpander"] {
-                background-color: #FFEBD7 !important; /* Um laranja pêssego mais vivo */
-                border: 2px solid #FF9800 !important; /* Borda laranja forte para destacar */
+                background-color: #FFFFFF !important; /* Branco Puro */
+                border: 1px solid #E0E0E0 !important; /* Borda cinza suave */
                 border-radius: 12px;
-                box-shadow: 0 4px 6px rgba(0,0,0,0.1); /* Sombra leve para dar destaque */
+                box-shadow: 0 4px 6px rgba(0,0,0,0.05); /* Sombra bem leve */
             }
             
-            /* Ajuste para o título do cartão ficar em laranja escuro */
+            /* Título do cartão em Azul Escuro para combinar com o tema */
             .streamlit-expanderHeader {
-                color: #E65100 !important;
+                color: #0A2342 !important; 
                 font-weight: bold;
             }
             
-            /* Ajuste da cor da fonte dentro do cartão para preto (leitura fácil) */
+            /* Texto interno do cartão em cinza escuro */
             [data-testid="stExpander"] .stMarkdown {
                 color: #333333;
             }
 
-            /* Barra Lateral (Cinza bem claro para contraste limpo) */
+            /* --- 5. BARRA LATERAL --- */
             [data-testid="stSidebar"] {
                 background-color: #F8F9FA;
                 border-right: 1px solid #eee;
             }
             
-            /* Títulos principais em branco para destacar no azul marinho */
+            /* Títulos principais em branco (na área azul) */
             h1, h3.stSubheader {
                 color: #FFFFFF !important;
                 text-shadow: 0 1px 2px rgba(0,0,0,0.3);
