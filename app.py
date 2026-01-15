@@ -13,7 +13,7 @@ hide_st_style = """
             header {visibility: hidden;}
             footer {visibility: hidden;}
             
-            /* Ajuste para botões de popover ficarem discretos e padrão */
+            /* Ajuste para botões de popover ficarem discretos */
             [data-testid="stPopover"] > button {
                 border: 1px solid #e0e0e0;
                 padding: 2px 10px;
@@ -21,6 +21,23 @@ hide_st_style = """
                 height: auto;
                 min-height: 0px;
                 line-height: 1.2;
+            }
+            
+            /* Ajuste do botão de Link para ser visível e bonito */
+            [data-testid="stLinkButton"] > a {
+                border: 1px solid #4CAF50 !important;
+                color: #4CAF50 !important;
+                background-color: transparent !important;
+                padding: 2px 8px !important;
+                font-size: 0.8rem !important;
+                text-decoration: none !important;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+            }
+            [data-testid="stLinkButton"] > a:hover {
+                background-color: #4CAF50 !important;
+                color: white !important;
             }
             </style>
             """
@@ -95,7 +112,9 @@ def mostrar_logo(width_val):
 # --- CARREGAMENTO DE DADOS ---
 try:
     df = pd.read_csv(url, dtype=str).fillna("")
-    df.columns = df.columns.str.strip()
+    # LIMPEZA INTELIGENTE DOS CABEÇALHOS
+    # Remove espaços extras e troca espaços por underline (Link Contrato -> Link_Contrato)
+    df.columns = df.columns.str.strip().str.replace(' ', '_')
 except Exception as e:
     st.error(f"Erro ao conectar: {e}")
     st.stop()
@@ -166,7 +185,6 @@ else:
         with st.expander(titulo_card, expanded=False):
             barra_progresso_interna(progresso)
             
-            # Cabeçalho do Card
             c1, c2 = st.columns(2)
             c1.markdown(f"<small>🆔 ID: {row['ID_Caixa']}</small>", unsafe_allow_html=True)
             c1.markdown(f"<small>📍 Tipo: {row.get('Tipo_Imovel', '-')}</small>", unsafe_allow_html=True)
@@ -178,14 +196,11 @@ else:
             st.markdown("##### 🚦 Status de Regularização")
             r1, r2, r3 = st.columns(3)
             
-            # Coluna 1: Ocupação (COM BOTÃO "OBS" IGUAL AOS OUTROS)
+            # Coluna 1: Ocupação
             with r1:
                 ocup = row.get('Status_Ocupacao', '-')
                 st.markdown(f"**Ocupação:** :{obter_cor_texto(ocup)}[{ocup}]")
-                
-                # Procura se tem Nota
                 nota_ocup = str(row.get('Nota_Ocupacao', '')).strip()
-                # Se tiver nota e não estiver vazio, mostra o botão "Obs"
                 if nota_ocup and nota_ocup.lower() not in ['nan', '']:
                     st.popover("Obs").write(nota_ocup)
             
@@ -205,6 +220,8 @@ else:
             # --- ETAPAS DOCUMENTAIS ---
             st.markdown("##### 📝 Etapas Documentais")
             tipo_compra = str(row.get('Tipo_Compra', '')).lower()
+            
+            # Definição dos nomes exatos das colunas esperadas
             fluxo = [("Contrato", "Status_Contrato", "Link_Contrato", "Nota_Contrato"), ("ITBI", "Status_ITBI", "Link_ITBI", "Nota_ITBI")]
             if 'financiado' not in tipo_compra: fluxo.append(("Escritura", "Status_Escritura", "Link_Escritura", "Nota_Escritura"))
             fluxo.append(("Registro", "Status_Registro", "Link_Registro", "Nota_Registro"))
@@ -217,9 +234,20 @@ else:
                     with cols[j]:
                         txt = row.get(stt, '')
                         st.markdown(f"**{lbl}**"); st.write(f"{obter_icone(txt)} {txt}")
-                        l, n = st.columns([1,4])
+                        
+                        l, n = st.columns([1.5, 3.5]) # Ajustei a largura para o botão caber melhor
+                        
+                        # --- LÓGICA DE CORREÇÃO DE LINK ---
                         lk = str(row.get(lnk, '')).strip()
-                        if lk and "http" in lk: l.link_button("📂", lk)
+                        # Se tem texto mas não tem http e parece um site/drive, adiciona https
+                        if lk and "http" not in lk and ("www" in lk or "drive" in lk or "docs" in lk):
+                            lk = "https://" + lk
+                        
+                        # Se o link agora é válido, mostra o botão
+                        if lk and "http" in lk:
+                            # Botão verde e estilizado
+                            l.link_button("📂 Abrir", lk, help="Acessar documento", use_container_width=True)
+                            
                         nt_txt = str(row.get(nt, '')).strip()
                         if nt_txt and nt_txt.lower() != "nan": n.popover("Obs").write(nt_txt)
                         st.write("")
